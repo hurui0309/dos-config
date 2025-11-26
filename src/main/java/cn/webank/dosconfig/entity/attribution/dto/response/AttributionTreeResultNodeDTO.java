@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 归因树结果节点（递归）
+ * 归因树结果节点（递归），记录每个节点的基准/对比值及贡献度。
  */
 public record  AttributionTreeResultNodeDTO(
         String nodeId,
@@ -12,7 +12,7 @@ public record  AttributionTreeResultNodeDTO(
         String metricId,
         Boolean isRate,
         String op,
-        BigDecimal currentValue,
+        BigDecimal compareValue,
         BigDecimal baselineValue,
         BigDecimal deltaValue,
         BigDecimal deltaRate,

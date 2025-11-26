@@ -3,7 +3,6 @@ package cn.webank.dosconfig.service;
 import java.util.List;
 
 import cn.webank.dosconfig.entity.attribution.dto.request.CreateTaskRequest;
-import cn.webank.dosconfig.enums.DateGranularity;
 import cn.webank.dosconfig.entity.attribution.dto.response.AiAttributionReportDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.AttributionResultDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.AttributionTreeBriefDTO;
@@ -13,6 +12,7 @@ import cn.webank.dosconfig.entity.attribution.dto.response.MetricTrendDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.TaskCreateDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.TaskListDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.TaskStatusDTO;
+import cn.webank.dosconfig.enums.DateGranularity;
 
 /**
  * 归因分析服务接口

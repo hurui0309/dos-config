@@ -2,16 +2,13 @@ package cn.webank.dosconfig.entity;
 
 import cn.webank.dosconfig.enums.ResponseEnum;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.webank.weup.base.util.JSONUtil;
 
 /**
  * 统一响应结构
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BaseResponse<T> {
-    
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     /**
      * 响应码
@@ -119,14 +116,14 @@ public class BaseResponse<T> {
     @Override
     public String toString() {
         try {
-            return OBJECT_MAPPER.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
+            return JSONUtil.toDenseJsonStr(this);
+        } catch (Exception e) {
             return "BaseResponse{" +
-                    "respCode='" + respCode + '\'' +
-                    ", respMsg='" + respMsg + '\'' +
-                    ", data=" + data +
-                    ", bizSeq='" + bizSeq + '\'' +
-                    '}';
+                "respCode='" + respCode + '\'' +
+                ", respMsg='" + respMsg + '\'' +
+                ", data=" + data +
+                ", bizSeq='" + bizSeq + '\'' +
+                '}';
         }
     }
 }
