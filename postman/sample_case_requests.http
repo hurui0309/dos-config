@@ -1,0 +1,72 @@
+### 基础配置
+# 使用 Postman / VSCode REST Client 时，可将 {{baseUrl}} 设为实际服务地址
+# 例如：https://dev.example.com 或 http://localhost:8080
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@bizUser = zhangsan
+@taskId = CASE_TASK_20241124001
+@treeId = case_loan_balance_increment
+@metricId = finance.loan_increase_amount
+
+###
+# 1. 查询核心指标列表
+# 参数：metricName（模糊匹配），limit（返回条数 1-100）
+GET {{baseUrl}}/attribution/metrics?metricName=贷款&limit=10
+Content-Type: {{contentType}}
+
+###
+# 2. 查询核心指标趋势
+# 参数：timeGranularity、baselineDate、compareDate
+GET {{baseUrl}}/attribution/metrics/{{metricId}}/trend?timeGranularity=DAY&baselineDate=2024-01-01&compareDate=2024-01-08
+Content-Type: {{contentType}}
+
+###
+# 3. 查询归因树列表
+# 参数：treeName（模糊匹配），limit（返回条数 1-100）
+GET {{baseUrl}}/attribution/trees?treeName=贷款&limit=10
+Content-Type: {{contentType}}
+
+###
+# 4. 查询归因树配置
+GET {{baseUrl}}/attribution/trees/{{treeId}}/config
+Content-Type: {{contentType}}
+
+###
+# 5. 创建分析任务
+# 说明：与 sample_case_data.sql 中的数据保持一致，创建一个新的日度归因任务
+POST {{baseUrl}}/attribution/tasks
+Content-Type: {{contentType}}
+X-User-Name: {{bizUser}}
+
+{
+  "treeId": "{{treeId}}",
+  "listId": null,
+  "contributionThreshold": 0.1,
+  "timeGranularity": "DAY",
+  "baselineDate": "2024-01-01",
+  "compareDate": "2024-01-08"
+}
+
+###
+# 6. 查询分析任务列表（分页）
+# 参数：treeName、creator、pageNo、pageSize
+GET {{baseUrl}}/attribution/tasks?treeName=贷款余额&creator={{bizUser}}&pageNo=1&pageSize=20
+Content-Type: {{contentType}}
+
+###
+# 7. 查询任务状态
+# 将 {{taskId}} 替换为创建任务接口返回的 taskId（示例：CASE_TASK_20241124001）
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/status
+Content-Type: {{contentType}}
+
+###
+# 8. 查询归因分析结果
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/result
+Content-Type: {{contentType}}
+
+###
+# 9. 查询 AI 归因报告
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/ai-report
+Content-Type: {{contentType}}
+

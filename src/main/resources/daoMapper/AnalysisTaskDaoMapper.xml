@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.webank.dosconfig.dao.AnalysisTaskDao">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="cn.webank.dosconfig.entity.attribution.AnalysisTask">
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
+        <result column="tree_id" property="treeId" jdbcType="VARCHAR"/>
+        <result column="tree_name" property="treeName" jdbcType="VARCHAR"/>
+        <result column="list_id" property="listId" jdbcType="VARCHAR"/>
+        <result column="list_name" property="listName" jdbcType="VARCHAR"/>
+        <result column="contribution_threshold" property="contributionThreshold" jdbcType="DECIMAL"/>
+        <result column="time_granularity" property="timeGranularity" jdbcType="VARCHAR"/>
+        <result column="baseline_date" property="baselineDate" jdbcType="DATE"/>
+        <result column="compare_date" property="compareDate" jdbcType="DATE"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="progress" property="progress" jdbcType="INTEGER"/>
+        <result column="message" property="message" jdbcType="VARCHAR"/>
+        <result column="creator" property="creator" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="start_time" property="startTime" jdbcType="TIMESTAMP"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列列表 -->
+    <sql id="Base_Column_List">
+        task_id, tree_id, tree_name, list_id, list_name, contribution_threshold, time_granularity,
+        baseline_date, compare_date, status, progress, message, creator, 
+        create_time, start_time, end_time, update_time
+    </sql>
+
+    <!-- 根据任务ID查询 -->
+    <select id="selectByTaskId" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_analysis_task
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 条件查询任务列表（分页） -->
+    <select id="selectByConditions" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_analysis_task
+        <where>
+            <if test="treeName != null and treeName != ''">
+                AND tree_name LIKE CONCAT('%', #{treeName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator,jdbcType=VARCHAR}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null">
+            LIMIT #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 统计任务总数 -->
+    <select id="countByConditions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_analysis_task
+        <where>
+            <if test="treeName != null and treeName != ''">
+                AND tree_name LIKE CONCAT('%', #{treeName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="creator != null and creator != ''">
+                AND creator = #{creator,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <!-- 插入任务 -->
+    <insert id="insert" parameterType="cn.webank.dosconfig.entity.attribution.AnalysisTask">
+        INSERT INTO t_analysis_task (
+            task_id,
+            tree_id,
+            tree_name,
+            list_id,
+            list_name,
+            contribution_threshold,
+            time_granularity,
+            baseline_date,
+            compare_date,
+            status,
+            progress,
+            message,
+            creator,
+            create_time,
+            start_time,
+            end_time,
+            update_time
+        ) VALUES (
+            #{taskId,jdbcType=VARCHAR},
+            #{treeId,jdbcType=VARCHAR},
+            #{treeName,jdbcType=VARCHAR},
+            #{listId,jdbcType=VARCHAR},
+            #{listName,jdbcType=VARCHAR},
+            #{contributionThreshold,jdbcType=DECIMAL},
+            #{timeGranularity,jdbcType=VARCHAR},
+            #{baselineDate,jdbcType=DATE},
+            #{compareDate,jdbcType=DATE},
+            #{status,jdbcType=VARCHAR},
+            #{progress,jdbcType=INTEGER},
+            #{message,jdbcType=VARCHAR},
+            #{creator,jdbcType=VARCHAR},
+            #{createTime,jdbcType=TIMESTAMP},
+            #{startTime,jdbcType=TIMESTAMP},
+            #{endTime,jdbcType=TIMESTAMP},
+            #{updateTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!-- 更新任务 -->
+    <update id="updateByTaskId" parameterType="cn.webank.dosconfig.entity.attribution.AnalysisTask">
+        UPDATE t_analysis_task
+        SET tree_id = #{treeId,jdbcType=VARCHAR},
+            tree_name = #{treeName,jdbcType=VARCHAR},
+            list_id = #{listId,jdbcType=VARCHAR},
+            list_name = #{listName,jdbcType=VARCHAR},
+            contribution_threshold = #{contributionThreshold,jdbcType=DECIMAL},
+            time_granularity = #{timeGranularity,jdbcType=VARCHAR},
+            baseline_date = #{baselineDate,jdbcType=DATE},
+            compare_date = #{compareDate,jdbcType=DATE},
+            status = #{status,jdbcType=VARCHAR},
+            progress = #{progress,jdbcType=INTEGER},
+            message = #{message,jdbcType=VARCHAR},
+            start_time = #{startTime,jdbcType=TIMESTAMP},
+            end_time = #{endTime,jdbcType=TIMESTAMP},
+            update_time = #{updateTime,jdbcType=TIMESTAMP}
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 更新任务状态 -->
+    <update id="updateStatus">
+        UPDATE t_analysis_task
+        SET status = #{status,jdbcType=VARCHAR},
+            progress = #{progress,jdbcType=INTEGER},
+            update_time = NOW()
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </update>
+
+</mapper>
+

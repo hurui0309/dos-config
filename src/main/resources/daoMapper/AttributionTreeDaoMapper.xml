@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.webank.dosconfig.dao.AttributionTreeDao">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="cn.webank.dosconfig.entity.attribution.AttributionTree">
+        <result column="tree_id" property="treeId" jdbcType="VARCHAR"/>
+        <result column="tree_name" property="treeName" jdbcType="VARCHAR"/>
+        <result column="metric_id" property="metricId" jdbcType="VARCHAR"/>
+        <result column="metric_name" property="metricName" jdbcType="VARCHAR"/>
+        <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="tree_config" property="treeConfig" jdbcType="LONGVARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列列表 -->
+    <sql id="Base_Column_List">
+        tree_id, tree_name, metric_id, metric_name, version, create_time, update_time
+    </sql>
+
+    <!-- 包含BLOB列 -->
+    <sql id="Blob_Column_List">
+        tree_config
+    </sql>
+
+    <!-- 根据归因树ID查询 -->
+    <select id="selectByTreeId" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Blob_Column_List"/>
+        FROM t_attribution_tree
+        WHERE tree_id = #{treeId,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 模糊查询归因树列表 -->
+    <select id="selectByTreeName" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_attribution_tree
+        <where>
+            <if test="treeName != null and treeName != ''">
+                AND tree_name LIKE CONCAT('%', #{treeName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 查询所有归因树 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_attribution_tree
+        ORDER BY create_time DESC
+        <if test="limit != null">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 插入归因树 -->
+    <insert id="insert" parameterType="cn.webank.dosconfig.entity.attribution.AttributionTree">
+        INSERT INTO t_attribution_tree (
+            tree_id,
+            tree_name,
+            metric_id,
+            metric_name,
+            version,
+            tree_config,
+            create_time,
+            update_time
+        ) VALUES (
+            #{treeId,jdbcType=VARCHAR},
+            #{treeName,jdbcType=VARCHAR},
+            #{metricId,jdbcType=VARCHAR},
+            #{metricName,jdbcType=VARCHAR},
+            #{version,jdbcType=INTEGER},
+            #{treeConfig,jdbcType=LONGVARCHAR},
+            #{createTime,jdbcType=TIMESTAMP},
+            #{updateTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!-- 更新归因树 -->
+    <update id="updateByTreeId" parameterType="cn.webank.dosconfig.entity.attribution.AttributionTree">
+        UPDATE t_attribution_tree
+        SET tree_name = #{treeName,jdbcType=VARCHAR},
+            metric_id = #{metricId,jdbcType=VARCHAR},
+            metric_name = #{metricName,jdbcType=VARCHAR},
+            version = #{version,jdbcType=INTEGER},
+            tree_config = #{treeConfig,jdbcType=LONGVARCHAR},
+            update_time = #{updateTime,jdbcType=TIMESTAMP}
+        WHERE tree_id = #{treeId,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 删除归因树 -->
+    <delete id="deleteByTreeId" parameterType="java.lang.String">
+        DELETE FROM t_attribution_tree
+        WHERE tree_id = #{treeId,jdbcType=VARCHAR}
+    </delete>
+
+    <!-- 根据指标ID查询归因树 -->
+    <select id="selectByMetricId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_attribution_tree
+        WHERE metric_id = #{metricId,jdbcType=VARCHAR}
+        ORDER BY create_time DESC
+        <if test="limit != null">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 根据指标名称模糊查询归因树 -->
+    <select id="selectByMetricName" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_attribution_tree
+        <where>
+            <if test="metricName != null and metricName != ''">
+                AND metric_name LIKE CONCAT('%', #{metricName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+</mapper>
+

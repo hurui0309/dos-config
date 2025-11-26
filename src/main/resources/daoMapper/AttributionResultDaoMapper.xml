@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.webank.dosconfig.dao.AttributionResultDao">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="cn.webank.dosconfig.entity.attribution.AttributionResult">
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
+        <result column="result_tree" property="resultTree" jdbcType="LONGVARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列列表 -->
+    <sql id="Base_Column_List">
+        task_id, create_time
+    </sql>
+
+    <!-- BLOB列 -->
+    <sql id="Blob_Column_List">
+        result_tree
+    </sql>
+
+    <!-- 根据任务ID查询 -->
+    <select id="selectByTaskId" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Blob_Column_List"/>
+        FROM t_attribution_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 插入归因结果 -->
+    <insert id="insert" parameterType="cn.webank.dosconfig.entity.attribution.AttributionResult">
+        INSERT INTO t_attribution_result (
+            task_id,
+            result_tree,
+            create_time
+        ) VALUES (
+            #{taskId,jdbcType=VARCHAR},
+            #{resultTree,jdbcType=LONGVARCHAR},
+            #{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!-- 更新归因结果 -->
+    <update id="updateByTaskId" parameterType="cn.webank.dosconfig.entity.attribution.AttributionResult">
+        UPDATE t_attribution_result
+        SET result_tree = #{resultTree,jdbcType=LONGVARCHAR}
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 删除归因结果 -->
+    <delete id="deleteByTaskId" parameterType="java.lang.String">
+        DELETE FROM t_attribution_result
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </delete>
+
+</mapper>
+

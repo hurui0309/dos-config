@@ -1,0 +1,118 @@
+# ============================================================
+# 归因树配置示例 (YAML格式)
+# 用途：便于维护和版本控制指标归因树结构
+# 说明：可通过工具将此YAML转为JSON后存入数据库 tree_config 字段
+# ============================================================
+
+# 归因树元信息
+treeId: loan_balance_increment
+treeName: 贷款余额增量归因树
+version: 1
+
+# 树结构配置（根节点）
+treeConfig:
+  nodeId: loan_inc
+  nodeName: 贷款余额增量
+  metricId: finance.loan_increase_amount
+  isRate: false
+  op: sub  # 运算类型：add-加法, sub-减法, mul-乘法, div-除法, null-叶子节点
+  dimensions: []  # 可归因的维度列表（空表示不做维度归因）
+  params: {}      # 节点参数（如 epThreshold、epTotalThreshold）
+  
+  # 子节点列表
+  children:
+    # ============ 子节点1: 发放金额 ============
+    - nodeId: disbursement
+      nodeName: 发放金额
+      metricId: finance.disbursement_amount
+      isRate: false
+      op: mul  # 乘法拆解
+      dimensions:
+        - package_type          # 产品类型维度
+        - ent_credit_period     # 企业授信期限维度
+      params:
+        epThreshold: 0.1        # EP值阈值（单维度贡献度过滤）
+        epTotalThreshold: 0.67  # EP总贡献度阈值
+      
+      # 发放金额的子节点
+      children:
+        # ---------- 孙节点1: 发放户数 ----------
+        - nodeId: drawdown_cust_cnt
+          nodeName: 发放户数
+          metricId: finance.drawdown_cust_cnt
+          isRate: false
+          op: null  # 叶子节点
+          dimensions: []
+          params: {}
+          children: []
+        
+        # ---------- 孙节点2: 户均发放额 ----------
+        - nodeId: avg_drawdown_amt
+          nodeName: 户均发放额
+          metricId: finance.avg_drawdown_amt
+          isRate: false
+          op: null  # 叶子节点
+          dimensions: []
+          params: {}
+          children: []
+    
+    # ============ 子节点2: 还款金额 ============
+    - nodeId: repayment
+      nodeName: 还款金额
+      metricId: finance.repayment_amount
+      isRate: false
+      op: null  # 叶子节点（不再拆解）
+      dimensions: []
+      params: {}
+      children: []
+
+# ============================================================
+# 字段说明：
+# ============================================================
+# nodeId:       节点唯一标识（必填）
+# nodeName:     节点展示名称（必填）
+# metricId:     关联的指标ID（必填）
+# isRate:       是否为比率型指标（true/false，影响计算逻辑）
+# op:           运算类型（add/sub/mul/div/null，null表示叶子节点）
+# dimensions:   可归因的维度列表（如产品类型、地区等，用于单维归因分析）
+# params:       节点参数配置
+#   - epThreshold:       EP值阈值，过滤低贡献度维度值（默认 0.1）
+#   - epTotalThreshold:  EP总贡献度阈值，控制维度覆盖率（默认 0.67）
+# children:     子节点列表（递归结构，叶子节点为空数组）
+#
+# ============================================================
+# 运算类型说明：
+# ============================================================
+# add: 加法拆解（如：总收入 = 产品A收入 + 产品B收入）
+# sub: 减法拆解（如：余额增量 = 发放金额 - 还款金额）
+# mul: 乘法拆解（如：发放金额 = 发放户数 × 户均发放额）
+# div: 除法拆解（如：转化率 = 转化数 ÷ 访问数）
+# null: 叶子节点（不再拆解）
+#
+# ============================================================
+# 维度归因说明：
+# ============================================================
+# dimensions 字段指定的维度列表，会在归因分析时：
+# 1. 查询该维度下各维度值的指标数据
+# 2. 计算各维度值的贡献度（EP值）和惊奇度（Surprise值）
+# 3. 根据 epThreshold 过滤低贡献度维度值
+# 4. 返回 Top N 维度值的归因结果
+#
+# 示例：
+#   dimensions: ["package_type", "region", "channel"]
+#   表示对"产品类型"、"地区"、"渠道"三个维度分别做归因分析
+#
+# ============================================================
+# 使用方式：
+# ============================================================
+# 1. 手工维护此 YAML 文件
+# 2. 通过工具转为 JSON（可用 yq、Python、Java等）
+# 3. 将 JSON 存入数据库 t_attribution_tree.tree_config 字段
+# 4. 或提供 API 接口直接上传 YAML/JSON 配置
+#
+# 示例命令（yq工具）：
+#   yq eval -o=json attribution-tree-demo.yml > tree_config.json
+#
+# 示例命令（Python）：
+#   python -c "import yaml,json; print(json.dumps(yaml.safe_load(open('attribution-tree-demo.yml'))['treeConfig']))"
+

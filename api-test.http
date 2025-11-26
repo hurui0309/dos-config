@@ -1,0 +1,123 @@
+### API测试文件
+### 使用 IntelliJ IDEA 或 VS Code 的 REST Client 插件执行
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### 1. 查询指标列表 - 无过滤条件
+GET {{baseUrl}}/attribution/metrics
+Accept: application/json
+
+### 2. 查询指标列表 - 带搜索条件
+GET {{baseUrl}}/attribution/metrics?metricName=发放&limit=10
+Accept: application/json
+
+### 3. 查询指标趋势
+GET {{baseUrl}}/attribution/metrics/finance.disbursement_amount/trend?baselineStartDate=2025-09-01&baselineEndDate=2025-09-07&compareStartDate=2025-09-08&compareEndDate=2025-09-14
+Accept: application/json
+
+### 4. 查询归因树列表
+GET {{baseUrl}}/attribution/trees
+Accept: application/json
+
+### 5. 查询归因树列表 - 带搜索条件
+GET {{baseUrl}}/attribution/trees?treeName=贷款&limit=10
+Accept: application/json
+
+### 6. 查询归因树配置
+GET {{baseUrl}}/attribution/trees/loan_balance_increment/config
+Accept: application/json
+
+### 7. 创建分析任务（不带名单ID）
+POST {{baseUrl}}/attribution/tasks
+Content-Type: {{contentType}}
+X-User-Name: admin
+
+{
+  "treeId": "loan_balance_increment",
+  "contributionThreshold": 0.05,
+  "baselineStartDate": "2025-09-01",
+  "baselineEndDate": "2025-09-07",
+  "compareStartDate": "2025-09-08",
+  "compareEndDate": "2025-09-14"
+}
+
+### 8. 创建分析任务（带名单ID）
+POST {{baseUrl}}/attribution/tasks
+Content-Type: {{contentType}}
+X-User-Name: zhangsan
+
+{
+  "treeId": "loan_balance_increment",
+  "rosterId": "roster_20251120_001",
+  "contributionThreshold": 0.05,
+  "baselineStartDate": "2025-09-01",
+  "baselineEndDate": "2025-09-07",
+  "compareStartDate": "2025-09-08",
+  "compareEndDate": "2025-09-14"
+}
+
+### 9. 查询任务列表 - 无过滤条件
+GET {{baseUrl}}/attribution/tasks?pageNo=1&pageSize=20
+Accept: application/json
+
+### 10. 查询任务列表 - 按归因树名称过滤
+GET {{baseUrl}}/attribution/tasks?treeName=贷款&pageNo=1&pageSize=20
+Accept: application/json
+
+### 11. 查询任务列表 - 按创建人过滤
+GET {{baseUrl}}/attribution/tasks?creator=zhang&pageNo=1&pageSize=20
+Accept: application/json
+
+### 12. 查询任务列表 - 多条件过滤
+GET {{baseUrl}}/attribution/tasks?treeName=贷款&creator=zhang&pageNo=1&pageSize=20
+Accept: application/json
+
+### 13. 查询任务状态（需要替换为实际的taskId）
+@taskId = TASK1732070000001A1B
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/status
+Accept: application/json
+
+### 14. 查询归因分析结果（需要替换为实际的taskId）
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/result
+Accept: application/json
+
+### 15. 查询AI归因报告（需要替换为实际的taskId）
+GET {{baseUrl}}/attribution/tasks/{{taskId}}/ai-report
+Accept: application/json
+
+### 16. 创建任务 - 参数校验测试（缺少必填字段）
+POST {{baseUrl}}/attribution/tasks
+Content-Type: {{contentType}}
+X-User-Name: admin
+
+{
+  "contributionThreshold": 0.05
+}
+
+### 17. 创建任务 - 参数校验测试（贡献度阈值超出范围）
+POST {{baseUrl}}/attribution/tasks
+Content-Type: {{contentType}}
+X-User-Name: admin
+
+{
+  "treeId": "loan_balance_increment",
+  "contributionThreshold": 1.5,
+  "baselineStartDate": "2025-09-01",
+  "baselineEndDate": "2025-09-07",
+  "compareStartDate": "2025-09-08",
+  "compareEndDate": "2025-09-14"
+}
+
+### 18. 查询不存在的指标趋势
+GET {{baseUrl}}/attribution/metrics/non_exist_metric/trend?baselineStartDate=2025-09-01&baselineEndDate=2025-09-07&compareStartDate=2025-09-08&compareEndDate=2025-09-14
+Accept: application/json
+
+### 19. 查询不存在的归因树配置
+GET {{baseUrl}}/attribution/trees/non_exist_tree/config
+Accept: application/json
+
+### 20. 查询不存在的任务状态
+GET {{baseUrl}}/attribution/tasks/TASK_NOT_EXIST/status
+Accept: application/json
+

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.webank.dosconfig.dao.AiReportDao">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="cn.webank.dosconfig.entity.attribution.AiReport">
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
+        <result column="report_status" property="reportStatus" jdbcType="VARCHAR"/>
+        <result column="report_content" property="reportContent" jdbcType="LONGVARCHAR"/>
+        <result column="generate_time" property="generateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列列表 -->
+    <sql id="Base_Column_List">
+        task_id, report_status, generate_time, create_time
+    </sql>
+
+    <!-- BLOB列 -->
+    <sql id="Blob_Column_List">
+        report_content
+    </sql>
+
+    <!-- 根据任务ID查询 -->
+    <select id="selectByTaskId" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Blob_Column_List"/>
+        FROM t_ai_report
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 插入AI报告 -->
+    <insert id="insert" parameterType="cn.webank.dosconfig.entity.attribution.AiReport">
+        INSERT INTO t_ai_report (
+            task_id,
+            report_status,
+            report_content,
+            generate_time,
+            create_time
+        ) VALUES (
+            #{taskId,jdbcType=VARCHAR},
+            #{reportStatus,jdbcType=VARCHAR},
+            #{reportContent,jdbcType=LONGVARCHAR},
+            #{generateTime,jdbcType=TIMESTAMP},
+            #{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!-- 更新AI报告 -->
+    <update id="updateByTaskId" parameterType="cn.webank.dosconfig.entity.attribution.AiReport">
+        UPDATE t_ai_report
+        SET report_status = #{reportStatus,jdbcType=VARCHAR},
+            report_content = #{reportContent,jdbcType=LONGVARCHAR},
+            generate_time = #{generateTime,jdbcType=TIMESTAMP}
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 删除AI报告 -->
+    <delete id="deleteByTaskId" parameterType="java.lang.String">
+        DELETE FROM t_ai_report
+        WHERE task_id = #{taskId,jdbcType=VARCHAR}
+    </delete>
+
+</mapper>
+
