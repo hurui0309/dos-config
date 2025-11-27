@@ -10,8 +10,8 @@
 package cn.webank.dosconfig.sample;
 
 import cn.webank.dosconfig.entity.attribution.dto.response.MetricTreeNodeDTO;
-import cn.webank.dosconfig.service.adtributor.NodeMetricComputationEngine;
-import cn.webank.dosconfig.service.adtributor.NodeMetricComputationEngine.MetricValue;
+import cn.webank.dosconfig.service.attribution.NodeMetricComputationEngine;
+import cn.webank.dosconfig.service.attribution.NodeMetricComputationEngine.MetricValue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,7 +57,7 @@ public class NodeMetricDemo {
 ```java
 package cn.webank.dosconfig.sample;
 
-import cn.webank.dosconfig.service.adtributor.DimensionAttributionEngine;
+import cn.webank.dosconfig.service.attribution.DimensionAttributionEngine;
 import cn.webank.dosconfig.entity.attribution.dto.response.DimensionAttributionItemDTO;
 
 import java.math.BigDecimal;

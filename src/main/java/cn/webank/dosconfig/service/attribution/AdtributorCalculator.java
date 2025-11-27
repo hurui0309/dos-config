@@ -1,4 +1,4 @@
-package cn.webank.dosconfig.service.adtributor;
+package cn.webank.dosconfig.service.attribution;
 
 import cn.webank.dosconfig.entity.attribution.dto.response.DimensionAttributionItemDTO;
 import org.slf4j.Logger;

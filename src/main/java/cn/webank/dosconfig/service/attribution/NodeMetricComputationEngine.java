@@ -1,4 +1,4 @@
-package cn.webank.dosconfig.service.adtributor;
+package cn.webank.dosconfig.service.attribution;
 
 import cn.webank.dosconfig.entity.attribution.dto.response.MetricTreeNodeDTO;
 import cn.webank.dosconfig.enums.DateGranularity;
