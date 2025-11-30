@@ -165,8 +165,8 @@ public class AttributionServiceImpl implements AttributionService {
             throw new SystemException("指标不存在: " + metricId);
         }
 
+        LocalDate compareStart = LocalDate.parse(baselineDate, DATE_FORMATTER);
         LocalDate compareEnd = LocalDate.parse(compareDate, DATE_FORMATTER);
-        LocalDate compareStart = compareEnd.minusDays(TREND_WINDOW_SIZE - 1);
 
         FilterCondition globalFilter = parseFilter(trees.get(0).getGlobalFilter());
 
