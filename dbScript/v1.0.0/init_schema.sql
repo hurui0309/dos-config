@@ -39,6 +39,7 @@ CREATE TABLE `t_attribution_tree` (
   `metric_id` VARCHAR(100) NOT NULL COMMENT '关联指标ID',
   `metric_name` VARCHAR(200) NOT NULL COMMENT '关联指标中文名称',
   `version` INT NOT NULL DEFAULT 1 COMMENT '配置版本号',
+  `global_filter` TEXT DEFAULT NULL COMMENT '全局过滤条件（JSON）',
   `tree_config` TEXT NOT NULL COMMENT '树结构配置（JSON格式）',
   `create_time` DATETIME NOT NULL COMMENT '创建时间',
   `update_time` DATETIME NOT NULL COMMENT '更新时间',
@@ -120,8 +121,20 @@ INSERT INTO `t_metric` (`metric_id`, `metric_name`, `metric_desc`, `table_name`,
 ('finance.avg_drawdown_amt', '户均发放额', '户均贷款发放额指标', 't_finance_metric', 'avg_drawdown_amt', NOW(), NOW());
 
 -- 插入测试归因树配置
-INSERT INTO `t_attribution_tree` (`tree_id`, `tree_name`, `metric_id`, `version`, `tree_config`, `create_time`, `update_time`) VALUES
+INSERT INTO `t_attribution_tree` (`tree_id`, `tree_name`, `metric_id`, `version`, `global_filter`, `tree_config`, `create_time`, `update_time`) VALUES
 ('loan_balance_increment', '贷款余额增量归因树', 'finance.loan_increase_amount', 1, 
+'{
+  "nodeType": "relation",
+  "relation": "AND",
+  "subConditions": [
+    {
+      "nodeType": "field",
+      "field": "dim_calendar_a.fmt_date",
+      "op": "GTE",
+      "value": "2023-01-01"
+    }
+  ]
+}',
 '{
   "nodeId": "loan_inc",
   "nodeName": "贷款余额增量",

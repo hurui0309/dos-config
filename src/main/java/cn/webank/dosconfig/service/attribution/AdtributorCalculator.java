@@ -50,14 +50,14 @@ public class AdtributorCalculator {
                 dimensionId, compareValues.size(), baselineValues.size());
         BigDecimal totalCompare = sum(compareValues);
         BigDecimal totalBaseline = sum(baselineValues);
-        BigDecimal totalDelta = totalCompare.subtract(totalBaseline);
+        BigDecimal totalDelta = totalBaseline.subtract(totalCompare);
 
         List<DimensionCandidate> candidates = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : compareValues.entrySet()) {
             String value = entry.getKey();
             BigDecimal compare = entry.getValue();
             BigDecimal baseline = baselineValues.getOrDefault(value, BigDecimal.ZERO);
-            BigDecimal delta = compare.subtract(baseline);
+            BigDecimal delta = baseline.subtract(compare);
             BigDecimal ep = safeDivide(delta, totalDelta);
             BigDecimal surprise = surprise(compare, baseline, totalCompare, totalBaseline);
             candidates.add(new DimensionCandidate(value, compare, baseline, delta, ep, surprise));
@@ -71,7 +71,7 @@ public class AdtributorCalculator {
             String value = entry.getKey();
             BigDecimal baseline = entry.getValue();
             BigDecimal compare = BigDecimal.ZERO;
-            BigDecimal delta = compare.subtract(baseline);
+            BigDecimal delta = baseline.subtract(compare);
             BigDecimal ep = safeDivide(delta, totalDelta);
             BigDecimal surprise = surprise(compare, baseline, totalCompare, totalBaseline);
             candidates.add(new DimensionCandidate(value, compare, baseline, delta, ep, surprise));

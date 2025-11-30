@@ -56,7 +56,9 @@ public class AttributionController {
         
         LOG.debug("查询核心指标列表: metricName={}, limit={}", metricName, limit);
         List<MetricBriefDTO> metrics = attributionService.getMetrics(metricName, limit);
-        return BaseResponse.ok(metrics);
+        BaseResponse<List<MetricBriefDTO>> response = BaseResponse.ok(metrics);
+        logResponse("getMetrics", response);
+        return response;
     }
 
     /**
@@ -81,7 +83,9 @@ public class AttributionController {
         
         LOG.debug("查询核心指标趋势: metricId={}, timeGranularity={}", metricId, timeGranularity);
         MetricTrendDTO trend = attributionService.getMetricTrend(metricId, timeGranularity, baselineDate, compareDate);
-        return BaseResponse.ok(trend);
+        BaseResponse<MetricTrendDTO> response = BaseResponse.ok(trend);
+        logResponse("getMetricTrend", response);
+        return response;
     }
 
     /**
@@ -98,7 +102,9 @@ public class AttributionController {
         
         LOG.debug("查询归因树列表: treeName={}, limit={}", treeName, limit);
         List<AttributionTreeBriefDTO> trees = attributionService.getTrees(treeName, limit);
-        return BaseResponse.ok(trees);
+        BaseResponse<List<AttributionTreeBriefDTO>> response = BaseResponse.ok(trees);
+        logResponse("getTrees", response);
+        return response;
     }
 
     /**
@@ -113,7 +119,9 @@ public class AttributionController {
         
         LOG.debug("查询归因树配置: treeId={}", treeId);
         AttributionTreeConfigDTO config = attributionService.getTreeConfig(treeId);
-        return BaseResponse.ok(config);
+        BaseResponse<AttributionTreeConfigDTO> response = BaseResponse.ok(config);
+        logResponse("getTreeConfig", response);
+        return response;
     }
 
     /**
@@ -126,7 +134,9 @@ public class AttributionController {
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "system") String creator) {
         LOG.info("创建分析任务: treeId={}, creator={}", request.treeId(), creator);
         TaskCreateDTO result = attributionService.createTask(request, creator);
-        return BaseResponse.ok(result);
+        BaseResponse<TaskCreateDTO> response = BaseResponse.ok(result);
+        logResponse("createTask", response);
+        return response;
     }
 
     /**
@@ -147,7 +157,9 @@ public class AttributionController {
         LOG.debug("查询任务列表: treeName={}, creator={}, pageNo={}, pageSize={}",
                 treeName, creator, pageNo, pageSize);
         TaskListDTO tasks = attributionService.getTasks(treeName, creator, pageNo, pageSize);
-        return BaseResponse.ok(tasks);
+        BaseResponse<TaskListDTO> response = BaseResponse.ok(tasks);
+        logResponse("getTasks", response);
+        return response;
     }
 
     /**
@@ -162,7 +174,9 @@ public class AttributionController {
         
         LOG.debug("查询任务状态: taskId={}", taskId);
         TaskStatusDTO status = attributionService.getTaskStatus(taskId);
-        return BaseResponse.ok(status);
+        BaseResponse<TaskStatusDTO> response = BaseResponse.ok(status);
+        logResponse("getTaskStatus", response);
+        return response;
     }
 
     /**
@@ -177,7 +191,9 @@ public class AttributionController {
         
         LOG.debug("查询归因分析结果: taskId={}", taskId);
         AttributionResultDTO result = attributionService.getAttributionResult(taskId);
-        return BaseResponse.ok(result);
+        BaseResponse<AttributionResultDTO> response = BaseResponse.ok(result);
+        logResponse("getAttributionResult", response);
+        return response;
     }
 
     /**
@@ -192,7 +208,13 @@ public class AttributionController {
         
         LOG.debug("查询AI归因报告: taskId={}", taskId);
         AiAttributionReportDTO report = attributionService.getAiReport(taskId);
-        return BaseResponse.ok(report);
+        BaseResponse<AiAttributionReportDTO> response = BaseResponse.ok(report);
+        logResponse("getAiReport", response);
+        return response;
+    }
+
+    private void logResponse(String methodName, BaseResponse<?> response) {
+        LOG.info("AttributionController {} response: {}", methodName, response);
     }
 }
 

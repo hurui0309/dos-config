@@ -1,0 +1,284 @@
+# ============================================================
+# 归因树配置示例 (YAML格式)
+# 用途：便于维护和版本控制指标归因树结构
+# 说明：可通过工具将此YAML转为JSON后存入数据库 tree_config 字段
+# ============================================================
+
+# 归因树元信息
+treeId: tie_customer_ck_lum_change_analysis_tree
+treeName: 提额客户月末敞口LUM变化归因分析树
+version: 1
+
+globalFilter:
+  nodeType: relation
+  relation: AND
+  subConditions:
+    - nodeType: field
+      field: dim_calendar_a.fmt_date
+      op: =
+      value: "2023-01-01"
+
+# 树结构配置（根节点）
+treeConfig:
+  nodeId: tie_customer_ck_lum_change
+  nodeName: 提额客户当月敞口LUM变化
+  metricId: tie_customer_ck_lum_change
+  isRate: false
+  op: sub  # 运算类型：add-加法, sub-减法, mul-乘法, div-除法, null-叶子节点
+  dimensions: []  # 可归因的维度列表（空表示不做维度归因）
+  params: {}      # 节点参数（如 epThreshold、epTotalThreshold）
+
+  # 子节点列表
+  children:
+    # ============ 子节点1: 提额客户当月LUM变化 ============
+    - nodeId: tie_customer_lum_change
+      nodeName: 提额客户当月LUM变化
+      metricId: finance.disbursement_amount
+      isRate: false
+      op: add  # 乘法拆解
+      dimensions: []
+      params: {}
+
+
+      # 发放金额的子节点
+      children:
+        # ---------- 孙节点1: M0客户LUM变化 ----------
+        - nodeId: m0_lum_change_amount
+          nodeName: M0客户LUM变化
+          metricId: m0_lum_change_amount
+          isRate: false
+          op: add  # 叶子节点
+          dimensions: []
+          params: {}
+
+          children:
+            # ---------- 重孙节点1: M0客户原始贷款余额 ----------
+            - nodeId: m0_before_credit_balance_amt_sum
+              nodeName: M0客户原始贷款余额
+              metricId: cube_credit_raise_feature_snap.m0_before_credit_balance_amt_sum
+              isRate: false
+              op: null  # 叶子节点
+              dimensions:
+                - active_type
+                - price_label
+              params: {}
+              children: []
+            # ---------- 重孙节点2: M0客户新增贷款余额 ----------
+            - nodeId: m0_new_lum
+              nodeName: M0客户新增贷款余额
+              metricId: cube_credit_raise_loan_repay_snap.m0_new_lum
+              isRate: false
+              op: add  # 叶子节点
+              dimensions: []
+              params: {}
+              children:
+                - nodeId: m0_curr_month_business_amt_sum
+                  nodeName: M0当月发放金额
+                  metricId: cube_credit_raise_loan_repay_snap.m0_curr_month_business_amt_sum
+                  isRate: false
+                  op: null
+                  dimensions:
+                    - active_type
+                    - price_label
+                  params: {}
+                  children: []
+
+                - nodeId: m0_curr_month_repay_principal_amt_sum
+                  nodeName: M0当月还款金额
+                  metricId: cube_credit_raise_loan_repay_snap.m0_curr_month_repay_principal_amt_sum
+                  isRate: false
+                  op: add
+                  dimensions: []
+                  params: {}
+                  children:
+                    - nodeId: m0_curr_month_pre_repay_principal_amt_sum
+                      nodeName: M0客户当月提前还贷款金额
+                      metricId: cube_credit_raise_loan_repay_snap.m0_curr_month_pre_repay_principal_amt_sum
+                      isRate: false
+                      op: null
+                      dimensions:
+                        - active_type
+                        - price_label
+                      params: {}
+                      children: []
+                    - nodeId: m0_curr_month_batch_repay_principal_amt_sum
+                      nodeName: M0客户当月批扣还款金额
+                      metricId: cube_credit_raise_loan_repay_snap.m0_curr_month_batch_repay_principal_amt_sum
+                      isRate: false
+                      op: null
+                      dimensions:
+                        - active_type
+                        - price_label
+                      params: {}
+                      children: []
+        # ---------- 孙节点2: M1客户LUM变化 ----------
+        - nodeId: m1_new_lum
+          nodeName: M1客户LUM变化
+          metricId: cube_credit_raise_loan_repay_snap.m1_new_lum
+          isRate: false
+          op: add  # 叶子节点
+          dimensions: []
+          params: {}
+          children:
+            - nodeId: m1_curr_month_business_amt_sum
+              nodeName: M1当月发放金额
+              metricId: cube_credit_raise_loan_repay_snap.m1_curr_month_business_amt_sum
+              isRate: false
+              op: null
+              dimensions: []
+              params: {}
+              children: []
+            - nodeId: m1_curr_month_repay_principal_amt_sum
+              nodeName: M1当月还款金额
+              metricId: cube_credit_raise_loan_repay_snap.m1_curr_month_repay_principal_amt_sum
+              isRate: false
+              op: add
+              dimensions: []
+              params: {}
+              children:
+                - nodeId: m1_curr_month_pre_repay_principal_amt_sum
+                  nodeName: M1客户当月提前还贷款金额
+                  metricId: cube_credit_raise_loan_repay_snap.m1_curr_month_pre_repay_principal_amt_sum
+                  isRate: false
+                  op: null
+                  dimensions:
+                    - active_type
+                    - price_label
+                  params: {}
+                  children: []
+                - nodeId: m1_curr_month_batch_repay_principal_amt_sum
+                  nodeName: M1客户当月批扣还款金额
+                  metricId: cube_credit_raise_loan_repay_snap.m1_curr_month_batch_repay_principal_amt_sum
+                  isRate: false
+                  op: null
+                  dimensions:
+                    - active_type
+                    - price_label
+                  params: {}
+                  children: []
+
+        # ---------- 孙节点3: M1+客户LUM变化 ----------
+        - nodeId: m1plus_new_lum
+          nodeName: M1+客户LUM变化
+          metricId: cube_credit_raise_loan_repay_snap.m1plus_new_lum
+          isRate: false
+          op: null  # 叶子节点
+          dimensions: []
+          params: {}
+          children:
+            - nodeId: m1plus_curr_month_business_amt_sum
+              nodeName: M1+当月发放金额
+              metricId: cube_credit_raise_loan_repay_snap.m1plus_curr_month_business_amt_sum
+              isRate: false
+              op: null
+              dimensions: []
+              params: {}
+              children: []
+            - nodeId: m1plus_curr_month_repay_principal_amt_sum
+              nodeName: M1+当月还款金额
+              metricId: cube_credit_raise_loan_repay_snap.m1plus_curr_month_repay_principal_amt_sum
+              isRate: false
+              op: add
+              dimensions: []
+              params: {}
+              children:
+                - nodeId: m1plus_curr_month_pre_repay_principal_amt_sum
+                  nodeName: M1+客户当月提前还贷款金额
+                  metricId: cube_credit_raise_loan_repay_snap.m1plus_curr_month_pre_repay_principal_amt_sum
+                  isRate: false
+                  op: null
+                  dimensions:
+                    - active_type
+                    - price_label
+                  params: {}
+                  children: []
+                - nodeId: m1plus_curr_month_batch_repay_principal_amt_sum
+                  nodeName: M1+客户当月批扣还款金额
+                  metricId: cube_credit_raise_loan_repay_snap.m1plus_curr_month_batch_repay_principal_amt_sum
+                  isRate: false
+                  op: null
+                  dimensions:
+                    - active_type
+                    - price_label
+                  params: {}
+                  children: []
+    # ============ 子节点2: 开票敞口金额变化 ============
+    - nodeId: curr_month_weacpt_ck_amt_sum_change
+      nodeName: 开票敞口金额变化
+      metricId: cube_credit_raise_feature_snap.curr_month_weacpt_ck_amt_sum_change
+      isRate: false
+      op: add  # 叶子节点（不再拆解）
+      dimensions: []
+      params: {}
+      children:
+        - nodeId: m0_before_credit_weacpt_amt_sum
+          nodeName: M0原始开票敞口金额
+          metricId: cube_credit_raise_feature_snap.m0_before_credit_weacpt_amt_sum
+          isRate: false
+          op: null
+          dimensions:
+            - active_type
+            - price_label
+          params: {}
+          children: []
+        - nodeId: curr_month_weacpt_ck_amt_sum
+          nodeName: 提额客户当月新增开票敞口金额
+          metricId: cube_credit_raise_feature_snap.curr_month_weacpt_ck_amt_sum
+          isRate: false
+          op: null
+          dimensions:
+            - active_type
+            - price_label
+          params: {}
+          children: []
+
+# ============================================================
+# 字段说明：
+# ============================================================
+# nodeId:       节点唯一标识（必填）
+# nodeName:     节点展示名称（必填）
+# metricId:     关联的指标ID（必填）
+# isRate:       是否为比率型指标（true/false，影响计算逻辑）
+# op:           运算类型（add/sub/mul/div/null，null表示叶子节点）
+# dimensions:   可归因的维度列表（如产品类型、地区等，用于单维归因分析）
+# params:       节点参数配置
+#   - epThreshold:       EP值阈值，过滤低贡献度维度值（默认 0.1）
+#   - epTotalThreshold:  EP总贡献度阈值，控制维度覆盖率（默认 0.67）
+# children:     子节点列表（递归结构，叶子节点为空数组）
+#
+# ============================================================
+# 运算类型说明：
+# ============================================================
+# add: 加法拆解（如：总收入 = 产品A收入 + 产品B收入）
+# sub: 减法拆解（如：余额增量 = 发放金额 - 还款金额）
+# mul: 乘法拆解（如：发放金额 = 发放户数 × 户均发放额）
+# div: 除法拆解（如：转化率 = 转化数 ÷ 访问数）
+# null: 叶子节点（不再拆解）
+#
+# ============================================================
+# 维度归因说明：
+# ============================================================
+# dimensions 字段指定的维度列表，会在归因分析时：
+# 1. 查询该维度下各维度值的指标数据
+# 2. 计算各维度值的贡献度（EP值）和惊奇度（Surprise值）
+# 3. 根据 epThreshold 过滤低贡献度维度值
+# 4. 返回 Top N 维度值的归因结果
+#
+# 示例：
+#   dimensions: ["package_type", "region", "channel"]
+#   表示对"产品类型"、"地区"、"渠道"三个维度分别做归因分析
+#
+# ============================================================
+# 使用方式：
+# ============================================================
+# 1. 手工维护此 YAML 文件
+# 2. 通过工具转为 JSON（可用 yq、Python、Java等）
+# 3. 将 JSON 存入数据库 t_attribution_tree.tree_config 字段
+# 4. 或提供 API 接口直接上传 YAML/JSON 配置
+#
+# 示例命令（yq工具）：
+#   yq eval -o=json attribution-tree-demo.yml > tree_config.json
+#
+# 示例命令（Python）：
+#   python -c "import yaml,json; print(json.dumps(yaml.safe_load(open('attribution-tree-demo.yml'))['treeConfig']))"
+

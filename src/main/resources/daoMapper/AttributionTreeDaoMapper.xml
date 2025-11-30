@@ -11,6 +11,7 @@
         <result column="metric_id" property="metricId" jdbcType="VARCHAR"/>
         <result column="metric_name" property="metricName" jdbcType="VARCHAR"/>
         <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="global_filter" property="globalFilter" jdbcType="LONGVARCHAR"/>
         <result column="tree_config" property="treeConfig" jdbcType="LONGVARCHAR"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
@@ -18,7 +19,7 @@
 
     <!-- 基础列列表 -->
     <sql id="Base_Column_List">
-        tree_id, tree_name, metric_id, metric_name, version, create_time, update_time
+        tree_id, tree_name, metric_id, metric_name, version, global_filter, create_time, update_time
     </sql>
 
     <!-- 包含BLOB列 -->
@@ -70,6 +71,7 @@
             metric_id,
             metric_name,
             version,
+            global_filter,
             tree_config,
             create_time,
             update_time
@@ -79,6 +81,7 @@
             #{metricId,jdbcType=VARCHAR},
             #{metricName,jdbcType=VARCHAR},
             #{version,jdbcType=INTEGER},
+            #{globalFilter,jdbcType=LONGVARCHAR},
             #{treeConfig,jdbcType=LONGVARCHAR},
             #{createTime,jdbcType=TIMESTAMP},
             #{updateTime,jdbcType=TIMESTAMP}
@@ -92,6 +95,7 @@
             metric_id = #{metricId,jdbcType=VARCHAR},
             metric_name = #{metricName,jdbcType=VARCHAR},
             version = #{version,jdbcType=INTEGER},
+            global_filter = #{globalFilter,jdbcType=LONGVARCHAR},
             tree_config = #{treeConfig,jdbcType=LONGVARCHAR},
             update_time = #{updateTime,jdbcType=TIMESTAMP}
         WHERE tree_id = #{treeId,jdbcType=VARCHAR}

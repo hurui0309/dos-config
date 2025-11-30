@@ -40,6 +40,11 @@ public class AttributionTree {
     private String treeConfig;
 
     /**
+     * 全局过滤条件（JSON格式，FilterCondition）
+     */
+    private String globalFilter;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

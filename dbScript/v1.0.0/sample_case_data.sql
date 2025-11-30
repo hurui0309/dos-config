@@ -38,13 +38,25 @@ ON DUPLICATE KEY UPDATE
 -- 2. 归因树配置（与文档示例保持一致）
 -- ============================================================
 INSERT INTO t_attribution_tree (
-    tree_id, tree_name, metric_id, metric_name, version, tree_config, create_time, update_time
+    tree_id, tree_name, metric_id, metric_name, version, global_filter, tree_config, create_time, update_time
 ) VALUES (
     'case_loan_balance_increment',
     '贷款余额增量归因树（演示版）',
     'finance.loan_increase_amount',
     '贷款余额增量',
     1,
+    '{
+      "nodeType": "relation",
+      "relation": "AND",
+      "subConditions": [
+        {
+          "nodeType": "field",
+          "field": "dim_calendar_a.fmt_date",
+          "op": "GTE",
+          "value": "2023-01-01"
+        }
+      ]
+    }',
     '{
       "nodeId": "loan_inc",
       "nodeName": "贷款余额增量",
@@ -104,6 +116,7 @@ INSERT INTO t_attribution_tree (
     NOW()
 ) ON DUPLICATE KEY UPDATE
     tree_name = VALUES(tree_name),
+    global_filter = VALUES(global_filter),
     tree_config = VALUES(tree_config),
     update_time = NOW();
 

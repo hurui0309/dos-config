@@ -5,6 +5,7 @@ import cn.webank.dosconfig.dao.AnalysisTaskDao;
 import cn.webank.dosconfig.dao.AttributionResultDao;
 import cn.webank.dosconfig.dao.AttributionTreeDao;
 import cn.webank.dosconfig.entity.FieldOrder;
+import cn.webank.dosconfig.entity.FilterCondition;
 import cn.webank.dosconfig.entity.TimeDimension;
 import cn.webank.dosconfig.entity.attribution.AiReport;
 import cn.webank.dosconfig.entity.attribution.AnalysisTask;
@@ -32,6 +33,7 @@ import cn.webank.dosconfig.entity.attribution.dto.response.TaskListDTO;
 import cn.webank.dosconfig.entity.attribution.dto.response.TaskStatusDTO;
 import cn.webank.dosconfig.entity.rmb.Req_04302590_01;
 import cn.webank.dosconfig.enums.DateGranularity;
+import cn.webank.dosconfig.enums.EOperator;
 import cn.webank.dosconfig.enums.TaskStatus;
 import cn.webank.dosconfig.exception.SystemException;
 import cn.webank.dosconfig.service.AttributionService;
@@ -75,12 +77,7 @@ public class AttributionServiceImpl implements AttributionService {
     private static final Logger LOG = LoggerFactory.getLogger(AttributionServiceImpl.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final int TREND_WINDOW_SIZE = 90;
-    private static final Map<DateGranularity, String> TIME_DIMENSION_MAPPING = Map.of(
-            DateGranularity.DAY, "dim_calendar_a.fmt_date",
-            DateGranularity.WEEK, "dim_calendar_a.week_begin_date",
-            DateGranularity.MONTH, "dim_calendar_a.month_begin_date"
-    );
+    private static final int TREND_WINDOW_SIZE = 180;
 
     @Value("${attribution.epsilon:0.000001}")
     private BigDecimal epsilon;
@@ -171,7 +168,14 @@ public class AttributionServiceImpl implements AttributionService {
         LocalDate compareEnd = LocalDate.parse(compareDate, DATE_FORMATTER);
         LocalDate compareStart = compareEnd.minusDays(TREND_WINDOW_SIZE - 1);
 
-        List<MetricPointDTO> trendSeries = queryTrendSeries(metricId, compareStart, compareEnd, timeGranularity);
+        FilterCondition globalFilter = parseFilter(trees.get(0).getGlobalFilter());
+
+        List<MetricPointDTO> trendSeries = queryTrendSeries(
+                metricId,
+                compareStart,
+                compareEnd,
+                timeGranularity,
+                globalFilter);
         Map<String, BigDecimal> trendMap = trendSeries.stream()
                 .collect(Collectors.toMap(MetricPointDTO::date, MetricPointDTO::value, BigDecimal::add));
 
@@ -411,11 +415,17 @@ public class AttributionServiceImpl implements AttributionService {
             MetricTreeNodeDTO root = parseJson(tree.getTreeConfig(), MetricTreeNodeDTO.class, "归因树配置格式错误");
             markTaskRunning(task, "解析归因树成功", 5);
 
+            FilterCondition queryFilter = mergeFilters(
+                    parseFilter(tree.getGlobalFilter()),
+                    buildListFilter(task.getListId())
+            );
+
             Map<String, NodeMetricComputationEngine.MetricValue> metricValues = buildMetricValueMap(
                     root,
                     task.getBaselineDate(),
                     task.getCompareDate(),
-                    task.getTimeGranularity()
+                    task.getTimeGranularity(),
+                    queryFilter
             );
             markTaskRunning(task, "节点指标值查询完成", 30);
             NodeMetricComputationEngine nodeMetricComputationEngine = createNodeMetricComputationEngine();
@@ -436,7 +446,8 @@ public class AttributionServiceImpl implements AttributionService {
                     task.getBaselineDate(),
                     task.getCompareDate(),
                     task.getTimeGranularity(),
-                    dimensionAttributionEngine);
+                    dimensionAttributionEngine,
+                    queryFilter);
             markTaskRunning(task, "完成贡献度计算", 90);
             persistResult(taskId, resultNode);
             markTaskSuccess(task, "归因分析完成");
@@ -476,9 +487,10 @@ public class AttributionServiceImpl implements AttributionService {
                                                                  LocalDate baselineDate,
                                                                  LocalDate compareDate,
                                                                  DateGranularity granularity,
-                                                                  DimensionAttributionEngine dimensionEngine) {
+                                                                  DimensionAttributionEngine dimensionEngine,
+                                                                 FilterCondition queryFilter) {
         List<AttributionTreeResultNodeDTO> childResults = node.children().stream()
-                .map(child -> addDimAttributionResult(child, rootDelta, node.deltaValue(), baselineDate, compareDate, granularity, dimensionEngine))
+                .map(child -> addDimAttributionResult(child, rootDelta, node.deltaValue(), baselineDate, compareDate, granularity, dimensionEngine, queryFilter))
                 .collect(Collectors.toList());
 
         List<DimensionAttributionItemDTO> dimensionAttribution = buildDimensionAttributionForNode(
@@ -486,7 +498,8 @@ public class AttributionServiceImpl implements AttributionService {
                 baselineDate,
                 compareDate,
                 granularity,
-                dimensionEngine
+                dimensionEngine,
+                queryFilter
         );
 
         BigDecimal localContribution = computeContribution(node.deltaValue(), parentDelta);
@@ -516,7 +529,8 @@ public class AttributionServiceImpl implements AttributionService {
                                                                               LocalDate baselineDate,
                                                                               LocalDate compareDate,
                                                                               DateGranularity granularity,
-                                                                              DimensionAttributionEngine dimensionEngine) {
+                                                                              DimensionAttributionEngine dimensionEngine,
+                                                                              FilterCondition queryFilter) {
         List<String> dimensions = node.node().dimensions();
         if (dimensions == null || dimensions.isEmpty()) {
             LOG.debug("节点{} 未配置维度，跳过维度归因", node.node().nodeId());
@@ -535,13 +549,17 @@ public class AttributionServiceImpl implements AttributionService {
                     node.node().metricId(),
                     dimensionId,
                     baselineDate,
-                    granularity
+                    baselineDate,
+                    granularity,
+                    queryFilter
             );
             Map<String, BigDecimal> compareValues = queryDimensionValues(
                     node.node().metricId(),
                     dimensionId,
                     compareDate,
-                    granularity
+                    compareDate,
+                    granularity,
+                    queryFilter
             );
             LOG.info("维度取数完成: nodeId={}, dimensionId={}, baselineCount={}, compareCount={}",
                     node.node().nodeId(), dimensionId, baselineValues.size(), compareValues.size());
@@ -571,21 +589,24 @@ public class AttributionServiceImpl implements AttributionService {
     private List<MetricPointDTO> queryTrendSeries(String metricId,
                                                   LocalDate start,
                                                   LocalDate end,
-                                                  DateGranularity granularity) {
-        List<FieldOrder> orders = List.of(new FieldOrder(resolveTimeDimensionField(granularity), "asc"));
-        Req_04302590_01 req = buildTrendMetricRequest(
+                                                  DateGranularity granularity,
+                                                  FilterCondition queryFilter) {
+        String dimensionField = resolveTimeDimensionField();
+        List<FieldOrder> orders = List.of(new FieldOrder(dimensionField, "asc"));
+        Req_04302590_01 req = buildMetricQueryRequest(
                 metricId,
-                List.of(resolveTimeDimensionField(granularity)),
+                Collections.emptyList(),
                 start,
                 end,
                 granularity,
                 orders,
-                TREND_WINDOW_SIZE * 5
+                metricQueryLimit,
+                queryFilter
         );
         List<Map<String, Object>> rows = metricService.queryResultList(req);
         Map<String, BigDecimal> aggregated = new HashMap<>();
         for (Map<String, Object> row : rows) {
-            String dateKey = Objects.toString(row.get(resolveTimeDimensionField(granularity)));
+            String dateKey = Objects.toString(row.get(dimensionField));
             BigDecimal value = toBigDecimal(row.get(metricId));
             aggregated.merge(dateKey, value, BigDecimal::add);
         }
@@ -595,44 +616,19 @@ public class AttributionServiceImpl implements AttributionService {
                 .collect(Collectors.toList());
     }
 
-    private Req_04302590_01 buildTrendMetricRequest(String metricId,
-                                                    List<String> dimensions,
-                                                    LocalDate start,
-                                                    LocalDate end,
-                                                    DateGranularity granularity,
-                                                    List<FieldOrder> orders,
-                                                    int limit) {
-        Req_04302590_01 req = new Req_04302590_01();
-        req.setMetrics(List.of(metricId));
-        req.setDimensions(dimensions);
-        TimeDimension timeDimension = buildTrendTimeDimension(granularity, start, end);
-        req.setTimeDimensions(List.of(timeDimension));
-        req.setSort(orders);
-        req.setLimit(limit);
-        return req;
-    }
-
-    private TimeDimension buildTrendTimeDimension(DateGranularity granularity, LocalDate start, LocalDate end) {
-        TimeDimension timeDimension = new TimeDimension();
-        String dimensionField = resolveTimeDimensionField(granularity);
-        timeDimension.setDimension(dimensionField);
-        timeDimension.setGranularity(granularity.name().toLowerCase());
-        timeDimension.setDateRange(List.of(start.format(DATE_FORMATTER), end.format(DATE_FORMATTER)));
-        return timeDimension;
-    }
-
     /**
      * 构建节点计算所需的指标值缓存，提前查询所有涉及的指标。
      */
     private Map<String, NodeMetricComputationEngine.MetricValue> buildMetricValueMap(MetricTreeNodeDTO root,
                                                                                     LocalDate baselineDate,
                                                                                     LocalDate compareDate,
-                                                                                    DateGranularity granularity) {
+                                                                                    DateGranularity granularity,
+                                                                                    FilterCondition queryFilter) {
         Set<String> metricIds = collectMetricIds(root);
         Map<String, NodeMetricComputationEngine.MetricValue> metricValues = new HashMap<>(metricIds.size());
         for (String metricId : metricIds) {
-            BigDecimal baselineValue = queryMetricValue(metricId, baselineDate, granularity);
-            BigDecimal compareValue = queryMetricValue(metricId, compareDate, granularity);
+            BigDecimal baselineValue = queryMetricValue(metricId, baselineDate, baselineDate, granularity, queryFilter);
+            BigDecimal compareValue = queryMetricValue(metricId, compareDate, compareDate, granularity, queryFilter);
             metricValues.put(metricId, new NodeMetricComputationEngine.MetricValue(baselineValue, compareValue));
         }
         LOG.info("指标取数完成: baseline={}, compare={}, count={}", baselineDate, compareDate, metricValues.size());
@@ -652,35 +648,45 @@ public class AttributionServiceImpl implements AttributionService {
         return metricIds;
     }
 
-    private BigDecimal queryMetricValue(String metricId, LocalDate date, DateGranularity granularity) {
-        Req_04302590_01 req = buildSingleDateMetricRequest(
+    private BigDecimal queryMetricValue(String metricId,
+                                        LocalDate start,
+                                        LocalDate end,
+                                        DateGranularity granularity,
+                                        FilterCondition queryFilter) {
+        Req_04302590_01 req = buildMetricQueryRequest(
                 metricId,
                 Collections.emptyList(),
-                date,
+                start,
+                end,
                 granularity,
                 Collections.emptyList(),
-                metricQueryLimit
+                metricQueryLimit,
+                queryFilter
         );
         List<Map<String, Object>> rows = metricService.queryResultList(req);
         BigDecimal value = rows.stream()
                 .map(row -> toBigDecimal(row.get(metricId)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        LOG.info("单日指标取数: metricId={}, date={}, value={}, rows={}", metricId, date, value, rows.size());
+        LOG.info("单日指标取数: metricId={}, start_date={}, end_date={}, value={}, rows={}", metricId, start, end, value, rows.size());
         return value;
     }
 
     private Map<String, BigDecimal> queryDimensionValues(String metricId,
                                                          String dimensionId,
-                                                         LocalDate date,
-                                                         DateGranularity granularity) {
+                                                         LocalDate start,
+                                                         LocalDate end,
+                                                         DateGranularity granularity,
+                                                         FilterCondition queryFilter) {
         List<FieldOrder> orders = List.of(new FieldOrder(metricId, "desc"));
-        Req_04302590_01 req = buildSingleDateMetricRequest(
+        Req_04302590_01 req = buildMetricQueryRequest(
                 metricId,
                 List.of(dimensionId),
-                date,
+                start,
+                end,
                 granularity,
                 orders,
-                dimensionTopLimit
+                dimensionTopLimit,
+                queryFilter
         );
         List<Map<String, Object>> rows = metricService.queryResultList(req);
         Map<String, BigDecimal> aggregated = new HashMap<>();
@@ -689,37 +695,67 @@ public class AttributionServiceImpl implements AttributionService {
             BigDecimal value = toBigDecimal(row.get(metricId));
             aggregated.merge(dimValue, value, BigDecimal::add);
         }
-        LOG.info("维度取数: metricId={}, dimensionId={}, date={}, rows={}", metricId, dimensionId, date, rows.size());
+        LOG.info("维度取数: metricId={}, dimensionId={}, start_date={}, end_date={}, rows={}", metricId, dimensionId, start, end, rows.size());
         return aggregated;
     }
 
-    private Req_04302590_01 buildSingleDateMetricRequest(String metricId,
-                                                         List<String> dimensions,
-                                                         LocalDate date,
-                                                         DateGranularity granularity,
-                                                         List<FieldOrder> orders,
-                                                         int limit) {
+    private Req_04302590_01 buildMetricQueryRequest(String metricId,
+                                                    List<String> dimensions,
+                                                    LocalDate start,
+                                                    LocalDate end,
+                                                    DateGranularity granularity,
+                                                    List<FieldOrder> orders,
+                                                    int limit,
+                                                    FilterCondition queryFilter) {
         Req_04302590_01 req = new Req_04302590_01();
         req.setMetrics(List.of(metricId));
         req.setDimensions(dimensions);
-        req.setTimeDimensions(List.of(buildSingleDateTimeDimension(granularity, date)));
+        req.setTimeDimensions(List.of(buildTimeDimension(granularity, start, end)));
         req.setSort(orders);
         req.setLimit(limit);
+        req.setFilters(cloneFilter(queryFilter));
+        LOG.info("METRICS QUERY REQ is: {}", JSONUtil.toDenseJsonStr(req));
         return req;
     }
 
-    private TimeDimension buildSingleDateTimeDimension(DateGranularity granularity, LocalDate date) {
+
+    private TimeDimension buildTimeDimension(DateGranularity granularity, LocalDate start, LocalDate end) {
         TimeDimension timeDimension = new TimeDimension();
-        String dimensionField = resolveTimeDimensionField(granularity);
-        timeDimension.setDimension(dimensionField);
+        timeDimension.setDimension(resolveTimeDimensionField());
         timeDimension.setGranularity(granularity.name().toLowerCase());
-        String day = date.format(DATE_FORMATTER);
-        timeDimension.setDateRange(List.of(day, day));
+        LocalDate normalizedStart = normalizeRangeStart(start, granularity);
+        LocalDate normalizedEnd = normalizeRangeEnd(end, granularity);
+        timeDimension.setDateRange(List.of(
+                normalizedStart.format(DATE_FORMATTER),
+                normalizedEnd.format(DATE_FORMATTER)
+        ));
         return timeDimension;
     }
 
-    private String resolveTimeDimensionField(DateGranularity granularity) {
-        return TIME_DIMENSION_MAPPING.getOrDefault(granularity, "dim_calendar_a.fmt_date");
+    private String resolveTimeDimensionField() {
+        return "dim_calendar_a.fmt_date";
+    }
+
+    private LocalDate normalizeRangeStart(LocalDate date, DateGranularity granularity) {
+        return switch (granularity) {
+            case YEAR -> date.withDayOfYear(1);
+            case MONTH -> date.withDayOfMonth(1);
+            case WEEK -> date.minusDays((date.getDayOfWeek().getValue() + 6) % 7);
+            default -> date;
+        };
+    }
+
+    private LocalDate normalizeRangeEnd(LocalDate date, DateGranularity granularity) {
+        return switch (granularity) {
+            case YEAR -> date.withDayOfYear(1).plusYears(1).minusDays(1);
+            case MONTH -> date.withDayOfMonth(1).plusMonths(1).minusDays(1);
+            case WEEK -> {
+                int value = date.getDayOfWeek().getValue();
+                int offset = (7 - (value % 7)) % 7;
+                yield date.plusDays(offset);
+            }
+            default -> date;
+        };
     }
 
     private void markTaskRunning(AnalysisTask task, String message, int progress) {
@@ -826,6 +862,42 @@ public class AttributionServiceImpl implements AttributionService {
             cursor = cursor.plusDays(1);
         }
         return dates;
+    }
+
+    private FilterCondition parseFilter(String json) {
+        if (StringUtils.isBlank(json)) {
+            return null;
+        }
+        try {
+            return FilterCondition.fromJson(json);
+        } catch (Exception e) {
+            LOG.warn("解析全局过滤条件失败: {}", json, e);
+            return null;
+        }
+    }
+
+    private FilterCondition buildListFilter(String listId) {
+        if (StringUtils.isBlank(listId)) {
+            return null;
+        }
+        return FilterCondition.operation("list_manage_raw_data.list_id", EOperator.EQ, listId);
+    }
+
+    private FilterCondition mergeFilters(FilterCondition first, FilterCondition second) {
+        if (first == null) {
+            return cloneFilter(second);
+        }
+        if (second == null) {
+            return cloneFilter(first);
+        }
+        return FilterCondition.and(List.of(cloneFilter(first), cloneFilter(second)));
+    }
+
+    private FilterCondition cloneFilter(FilterCondition filter) {
+        if (filter == null) {
+            return null;
+        }
+        return FilterCondition.fromJson(FilterCondition.toJson(filter));
     }
 
     private BigDecimal safeDivide(BigDecimal numerator, BigDecimal denominator) {

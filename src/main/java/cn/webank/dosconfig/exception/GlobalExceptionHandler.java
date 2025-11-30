@@ -2,6 +2,7 @@ package cn.webank.dosconfig.exception;
 
 import java.util.stream.Collectors;
 
+import cn.webank.dosconfig.entity.BaseResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.FieldError;
@@ -9,7 +10,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.dosconfig.common.BaseResponse;
 import cn.webank.dosconfig.enums.ResponseEnum;
 
 /**

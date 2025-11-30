@@ -1,6 +1,6 @@
 ## 本地快速测试示例
 
-以下示例基于 `NodeMetricComputationEngine` 与 `DimensionAttributionEngine` 当前实现，方便在 IDE 中直接创建 `main` 方法或 JUnit 测试来验证计算逻辑。
+以下示例基于 `NodeMetricComputationEngine` 与 `DimensionAttributionEngine` 当前实现，方便在 IDE 中直接创建 `main` 方法或 JUnit 测试来验证计算逻辑。仓库已提供可执行示例 `src/test/java/cn/webank/dosconfig/sample/EngineLocalTestExample.java`，可通过 `mvn -q -DskipTests org.codehaus.mojo:exec-maven-plugin:3.1.0:java -Dexec.mainClass=cn.webank.dosconfig.sample.EngineLocalTestExample -Dexec.classpathScope=test` 直接运行并观察输出。
 
 ---
 
@@ -24,14 +24,16 @@ public class NodeMetricDemo {
         MetricTreeNodeDTO childA = new MetricTreeNodeDTO("A", "指标A", "metric_a", false, "ADD", null, null);
         MetricTreeNodeDTO childB = new MetricTreeNodeDTO("B", "指标B", "metric_b", false, "ADD", null, null);
         MetricTreeNodeDTO childC = new MetricTreeNodeDTO("C", "指标C", "metric_c", false, "ADD", null, null);
-        MetricTreeNodeDTO multiplyNode = new MetricTreeNodeDTO("MUL", "乘法节点", null, false, "MUL", List.of(childB, childC), null);
-        MetricTreeNodeDTO root = new MetricTreeNodeDTO("ROOT", "加法根节点", null, false, "ADD", List.of(childA, multiplyNode), null);
+        MetricTreeNodeDTO multiplyNode = new MetricTreeNodeDTO("MUL", "乘法节点", "metric_mul", false, "MUL", List.of(childB, childC), null);
+        MetricTreeNodeDTO root = new MetricTreeNodeDTO("ROOT", "加法根节点", "metric_root", false, "ADD", List.of(childA, multiplyNode), null);
 
         // 2. 准备指标值（基准期 / 对比期）
         Map<String, MetricValue> metrics = Map.of(
                 "metric_a", new MetricValue(BigDecimal.valueOf(100), BigDecimal.valueOf(120)),
                 "metric_b", new MetricValue(BigDecimal.valueOf(10), BigDecimal.valueOf(15)),
-                "metric_c", new MetricValue(BigDecimal.valueOf(2), BigDecimal.valueOf(3))
+                "metric_c", new MetricValue(BigDecimal.valueOf(2), BigDecimal.valueOf(3)),
+                "metric_mul", new MetricValue(BigDecimal.valueOf(20), BigDecimal.valueOf(45)),
+                "metric_root", new MetricValue(BigDecimal.valueOf(120), BigDecimal.valueOf(165))
         );
 
         // 3. 计算
@@ -47,6 +49,8 @@ public class NodeMetricDemo {
     }
 }
 ```
+
+> 提示：示例中每个节点（包括中间节点）都显式配置了 `metricId`，并在 `metrics` map 中补齐对应的 baseline / compare 数值，便于验证“节点原值优先”逻辑。
 
 运行后可在控制台观察各节点日志，包括乘法节点的 LMDI 拆解。
 
